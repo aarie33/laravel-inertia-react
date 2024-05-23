@@ -1,12 +1,6 @@
 pipeline {
     agent any
     stages {
-        stage('Checkout') {
-            steps {
-                // Checkout the code from the repository
-                checkout scm
-            }
-        }
         stage('Install Backend Dependencies') {
             agent {
                 docker {
@@ -16,10 +10,13 @@ pipeline {
             }
             steps {
                 script {
-                    // Move to the project directory
                     dir('/var/www/html') {
-                        // Install PHP dependencies
-                        sh 'apt-get update && apt-get install -y sudo'
+                        // Update and install sudo if necessary
+                        sh '''
+                            apt-get update && apt-get install -y sudo
+                            sudo chown -R $(whoami):$(whoami) /var/www/html
+                        '''
+                        // Install Composer
                         sh 'curl -sS https://getcomposer.org/installer | php'
                         sh 'php composer.phar install'
                     }
@@ -29,15 +26,14 @@ pipeline {
         stage('Install Frontend Dependencies') {
             agent {
                 docker {
-                    image 'node:16-buster-slim'
+                    image 'node:14'
                     args '-u root -v /www/wwwroot/test-larareact.dafidea.com:/var/www/html'
                 }
             }
             steps {
                 script {
-                    // Move to the project directory
                     dir('/var/www/html') {
-                        // Install Node.js dependencies
+                        // Install frontend dependencies
                         sh 'npm install'
                     }
                 }
@@ -46,16 +42,15 @@ pipeline {
         stage('Build Frontend') {
             agent {
                 docker {
-                    image 'node:16-buster-slim'
+                    image 'node:14'
                     args '-u root -v /www/wwwroot/test-larareact.dafidea.com:/var/www/html'
                 }
             }
             steps {
                 script {
-                    // Move to the project directory
                     dir('/var/www/html') {
-                        // Build the frontend assets
-                        sh 'npm run dev' // or npm run production
+                        // Build frontend
+                        sh 'npm run build'
                     }
                 }
             }
@@ -69,9 +64,8 @@ pipeline {
             }
             steps {
                 script {
-                    // Move to the project directory
                     dir('/var/www/html') {
-                        // Run PHPUnit tests
+                        // Run tests
                         sh 'vendor/bin/phpunit'
                     }
                 }
@@ -80,7 +74,6 @@ pipeline {
     }
     post {
         always {
-            // Clean up after the build
             cleanWs()
         }
     }
