@@ -22,8 +22,12 @@ pipeline {
     //         }
     //     }
     // }
-
-    agent none // No default agent, each stage will define its own
+    
+    agent {
+        docker {
+            image 'php:7.4-cli'
+        }
+    }
 
     stages {
         stage('Build PHP Application') {
