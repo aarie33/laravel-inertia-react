@@ -1,108 +1,87 @@
 pipeline {
     agent any
-
-    environment {
-        NODE_IMAGE = 'node:16-buster-slim'
-        PHP_IMAGE = 'php:7.4-cli'
-        WORKDIR = '/www/wwwroot/test-larareact.dafidea.com'
-    }
-
     stages {
         stage('Checkout') {
             steps {
+                // Checkout the code from the repository
                 checkout scm
             }
         }
-        
-        stage('Backend Setup') {
+        stage('Install Backend Dependencies') {
             agent {
                 docker {
-                    image "${PHP_IMAGE}"
-                    args "-v $PWD:${WORKDIR}"
+                    image 'php:7.4-cli'
+                    args '-u root -v /www/wwwroot/test-larareact.dafidea.com:/var/www/html'
                 }
             }
             steps {
                 script {
-                    // Install PHP dependencies
-                    sh '''
-                    apt-get update && apt-get install -y unzip
-                    cd ${WORKDIR}
-                    curl -sS https://getcomposer.org/installer | php
-                    php composer.phar install
-                    '''
-                    // Set up the Laravel environment
-                    sh '''
-                    cd ${WORKDIR}
-                    cp .env.example .env
-                    php artisan key:generate
-                    php artisan migrate --seed
-                    '''
+                    // Move to the project directory
+                    dir('/var/www/html') {
+                        // Install PHP dependencies
+                        sh 'apt-get update && apt-get install -y sudo'
+                        sh 'curl -sS https://getcomposer.org/installer | php'
+                        sh 'php composer.phar install'
+                    }
                 }
             }
         }
-
-        stage('Frontend Setup') {
+        stage('Install Frontend Dependencies') {
             agent {
                 docker {
-                    image "${NODE_IMAGE}"
-                    args "-v $PWD:${WORKDIR}"
+                    image 'node:16-buster-slim'
+                    args '-u root -v /www/wwwroot/test-larareact.dafidea.com:/var/www/html'
                 }
             }
             steps {
                 script {
-                    // Install Node.js dependencies and build assets
-                    sh '''
-                    cd ${WORKDIR}
-                    npm install
-                    npm run production
-                    '''
+                    // Move to the project directory
+                    dir('/var/www/html') {
+                        // Install Node.js dependencies
+                        sh 'npm install'
+                    }
                 }
             }
         }
-
-        stage('Testing') {
-            parallel {
-                stage('Backend Tests') {
-                    agent {
-                        docker {
-                            image "${PHP_IMAGE}"
-                            args "-v $PWD:${WORKDIR}"
-                        }
-                    }
-                    steps {
-                        sh '''
-                        cd ${WORKDIR}
-                        php artisan test
-                        '''
+        stage('Build Frontend') {
+            agent {
+                docker {
+                    image 'node:16-buster-slim'
+                    args '-u root -v /www/wwwroot/test-larareact.dafidea.com:/var/www/html'
+                }
+            }
+            steps {
+                script {
+                    // Move to the project directory
+                    dir('/var/www/html') {
+                        // Build the frontend assets
+                        sh 'npm run dev' // or npm run production
                     }
                 }
-                stage('Frontend Tests') {
-                    agent {
-                        docker {
-                            image "${NODE_IMAGE}"
-                            args "-v $PWD:${WORKDIR}"
-                        }
-                    }
-                    steps {
-                        sh '''
-                        cd ${WORKDIR}
-                        npm test
-                        '''
+            }
+        }
+        stage('Run Tests') {
+            agent {
+                docker {
+                    image 'php:7.4-cli'
+                    args '-u root -v /www/wwwroot/test-larareact.dafidea.com:/var/www/html'
+                }
+            }
+            steps {
+                script {
+                    // Move to the project directory
+                    dir('/var/www/html') {
+                        // Run PHPUnit tests
+                        sh 'vendor/bin/phpunit'
                     }
                 }
             }
         }
     }
-
     post {
         always {
+            // Clean up after the build
             cleanWs()
-        }
-        success {
-            echo 'Pipeline completed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed!'
         }
     }
 }
