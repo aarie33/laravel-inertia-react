@@ -26,6 +26,17 @@ pipeline {
     agent none // No default agent, each stage will define its own
 
     stages {
+        stage('Build PHP Application') {
+            agent {
+                docker {
+                    image 'php:7.4'
+                }
+            }
+            steps {
+                sh 'cp .env.example .env'
+            }
+        }
+        
         stage('Install Composer Dependencies') {
             agent {
                 docker {
@@ -36,17 +47,6 @@ pipeline {
             steps {
                 git 'https://github.com/aarie33/laravel-inertia-react.git'
                 sh 'composer install'
-            }
-        }
-
-        stage('Build PHP Application') {
-            agent {
-                docker {
-                    image 'php:7.4'
-                }
-            }
-            steps {
-                sh 'cp .env.example .env'
                 sh 'php artisan key:generate'
             }
         }
