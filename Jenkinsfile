@@ -13,6 +13,15 @@ pipeline {
                 checkout scm
             }
         }
+        
+        stage('Prepare Environment') {
+            steps {
+                script {
+                    // Fix permissions before running any Docker containers
+                    sh 'sudo chown -R jenkins:jenkins /www/wwwroot/test-larareact.dafidea.com'
+                }
+            }
+        }
 
         stage('Backend Setup') {
             agent {
