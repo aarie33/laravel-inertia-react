@@ -62,4 +62,5 @@ pipeline {
                 sh 'npm run prod'
             }
         }
+    }
 }
