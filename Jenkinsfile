@@ -1,5 +1,15 @@
 pipeline {
-    agent any
+    // agent any
+
+    agent {
+        docker {
+            image 'composer:latest'
+
+            // If you use SSH cloning you need this. TODO - look at tokens for private repos and http clone
+            args '-v /etc/passwd:/etc/passwd:ro'
+            // args '-e HOME -v $HOME/.ssh:$HOME/.ssh:ro -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro'
+        }
+    }
 
     stages {
         stage('Build') {
