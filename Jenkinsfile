@@ -29,7 +29,7 @@ pipeline {
         stage('Build PHP Application') {
             agent {
                 docker {
-                    image 'php:7.4'
+                    image 'php:7.4-cli'
                 }
             }
             steps {
