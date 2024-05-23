@@ -23,11 +23,7 @@ pipeline {
     //     }
     // }
     
-    agent {
-        docker {
-            image 'php:7.4-cli'
-        }
-    }
+    agent any
 
     stages {
         stage('Build PHP Application') {
@@ -50,7 +46,7 @@ pipeline {
             }
             steps {
                 git 'https://github.com/aarie33/laravel-inertia-react.git'
-                sh 'composer install'
+                // sh 'composer install'
                 sh 'php artisan key:generate'
             }
         }
